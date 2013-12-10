@@ -1,0 +1,90 @@
+we're looking for task.received, task.started, task.succeeded, task.failed. Examples of each messages type, as well as it's decoded body are below
+
+# Received
+
+{u'body': u'base64 body',
+ u'content-encoding': u'utf-8',
+ u'content-type': u'application/json',
+ u'headers': {},
+ u'properties': {u'body_encoding': u'base64',
+  u'delivery_info': {u'exchange': u'celeryev',
+   u'priority': 0,
+   u'routing_key': u'task.received'},
+  u'delivery_mode': 2,
+  u'delivery_tag': u'c731027e-e21f-49ec-a2a6-7b6d430c0872'}}
+
+## Body
+
+{u'args': u'[]',
+ u'clock': 4,
+ u'eta': None,
+ u'expires': None,
+ u'hostname': u'Blakes-MacBook-Pro.local',
+ u'kwargs': u'{}',
+ u'name': u'ge.celery.test_preview_queue',
+ u'retries': 0,
+ u'timestamp': 1386708303.304656,
+ u'type': u'task-received',
+ u'uuid': u'0f23acf3-84c6-45a5-a2aa-5f78a23c06f5'}
+
+# Started
+{u'body': u'base64 body',
+ u'content-encoding': u'utf-8',
+ u'content-type': u'application/json',
+ u'headers': {},
+ u'properties': {u'body_encoding': u'base64',
+  u'delivery_info': {u'exchange': u'celeryev',
+   u'priority': 0,
+   u'routing_key': u'task.started'},
+  u'delivery_mode': 2,
+  u'delivery_tag': u'514d4944-610f-4253-9d95-568f51081416'}}
+
+## Body
+{u'clock': 5,
+ u'hostname': u'Blakes-MacBook-Pro.local',
+ u'pid': 23498,
+ u'timestamp': 1386708303.30644,
+ u'type': u'task-started',
+ u'uuid': u'0f23acf3-84c6-45a5-a2aa-5f78a23c06f5'}
+
+# Success
+{u'body': u'base64 body',
+ u'content-encoding': u'utf-8',
+ u'content-type': u'application/json',
+ u'headers': {},
+ u'properties': {u'body_encoding': u'base64',
+  u'delivery_info': {u'exchange': u'celeryev',
+   u'priority': 0,
+   u'routing_key': u'task.succeeded'},
+  u'delivery_mode': 2,
+  u'delivery_tag': u'111c6c82-989c-4fc3-a8e3-dd9aef7c1318'}}
+
+## Body
+{u'clock': 6,
+ u'hostname': u'Blakes-MacBook-Pro.local',
+ u'result': u'None',
+ u'runtime': 0.002463102340698242,
+ u'timestamp': 1386708303.308627,
+ u'type': u'task-succeeded',
+ u'uuid': u'0f23acf3-84c6-45a5-a2aa-5f78a23c06f5'}
+
+#Failure
+{u'body': u'base64 body',
+ u'content-encoding': u'utf-8',
+ u'content-type': u'application/json',
+ u'headers': {},
+ u'properties': {u'body_encoding': u'base64',
+  u'delivery_info': {u'exchange': u'celeryev',
+   u'priority': 0,
+   u'routing_key': u'task.failed'},
+  u'delivery_mode': 2,
+  u'delivery_tag': u'a6891cac-12f8-4218-865d-e6c564987c55'}}
+
+## Body
+{u'clock': 6,
+ u'exception': u'ValueError()',
+ u'hostname': u'Blakes-MacBook-Pro.local',
+ u'timestamp': 1386712735.564053,
+ u'traceback': u'Traceback (most recent call last):\n  File "/Users/bdeggleston/.workon/smm/lib/python2.7/site-packages/celery/task/trace.py", line 233, in trace_task\n    R = retval = fun(*args, **kwargs)\n  File "/Users/bdeggleston/.workon/smm/lib/python2.7/site-packages/celery/task/trace.py", line 420, in __protected_call__\n    return self.run(*args, **kwargs)\n  File "/Users/bdeggleston/code/grapheffect-api/ge/celery.py", line 211, in test_failure\n    raise ValueError\nValueError\n',
+ u'type': u'task-failed',
+ u'uuid': u'25bfeeaf-687d-43ac-85ac-12c95b7bd1aa'}
