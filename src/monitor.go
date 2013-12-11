@@ -109,6 +109,7 @@ type event interface {
 type baseEvent struct {
 	taskId string
 	timestamp float64
+	received time.Time
 }
 func (e *baseEvent) GetID() string { return e.taskId }
 func (e *baseEvent) GetTimestamp() float64 { return e.timestamp }
@@ -137,7 +138,7 @@ type failure struct {
 }
 func (e *failure) String() string { return fmt.Sprintf("Task Failed. %v", e.baseEvent.String()) }
 
-func _sendEvent(channel chan<- event, data []byte) error {
+func _sendEvent(channel chan<- event, data []byte, timeReceived time.Time) error {
 	eventMsg := make(map[string]interface {})
 	if err := json.Unmarshal(data, &eventMsg); err != nil {
 		return fmt.Errorf("Error unmarshalling json: %v\n%v\n", err, string(data))
@@ -183,17 +184,17 @@ func _sendEvent(channel chan<- event, data []byte) error {
 	case "task-received":
 		name, ok := body["name"].(string)
 		if !ok { return fmt.Errorf("event name not found, or it was the wrong type: %v", body["type"]) }
-		ev = &received{taskName:name, baseEvent:baseEvent{taskId:taskId, timestamp:timestamp}}
+		ev = &received{taskName:name, baseEvent:baseEvent{taskId:taskId, timestamp:timestamp, received:timeReceived}}
 	case "task-started":
-		ev = &started{baseEvent{taskId:taskId, timestamp:timestamp}}
+		ev = &started{baseEvent{taskId:taskId, timestamp:timestamp, received:timeReceived}}
 	case "task-succeeded":
-		ev = &success{baseEvent{taskId:taskId, timestamp:timestamp}}
+		ev = &success{baseEvent{taskId:taskId, timestamp:timestamp, received:timeReceived}}
 	case "task-failed":
-		ev = &failure{baseEvent{taskId:taskId, timestamp:timestamp}}
+		ev = &failure{baseEvent{taskId:taskId, timestamp:timestamp, received:timeReceived}}
 	default:
 		return fmt.Errorf("Unknown event type: %v", msgType)
 	}
-	logger.Debug("%+v", ev)
+	logger.Debug("%v", ev)
 
 	channel <- ev
 
@@ -202,7 +203,7 @@ func _sendEvent(channel chan<- event, data []byte) error {
 
 // listens on redis for events
 // and stuffs them into the event channel
-func listener(channel chan event) {
+func listener(channel chan<- event) {
 	for {
 		conn, err := redis.Dial("tcp", fmt.Sprintf("%v:%v", HOST, PORT))
 		if err != nil {
@@ -216,7 +217,8 @@ func listener(channel chan event) {
 			for {
 				switch v := psc.Receive().(type) {
 				case redis.Message:
-					if err := _sendEvent(channel, v.Data); err != nil {
+					t := time.Now()
+					if err := _sendEvent(channel, v.Data, t); err != nil {
 						logger.Error("Error processing event: %v", err)
 					} else {
 						if DEBUG >= 3 { fmt.Println(string(v.Data)) }
@@ -235,40 +237,61 @@ func listener(channel chan event) {
 				}
 			}
 	}
+	logger.Panic("listener loop stopped")
+}
+
+// set of tasks seen
+type stringSet map[string] bool
+type timeMap map[string] time.Time
+type floatMap map[string] float64
+type stringMap map[string] string
+var knownTasks stringSet
+
+// maps id to name
+var taskNames stringMap
+
+// maps of ids to the timestamps the finished
+var receivedTasks floatMap
+var startedTasks floatMap
+var successTasks floatMap
+var failedTasks floatMap
+
+// records the event data
+func recorder(channel <-chan event) {
+	for {
+		switch ev := (<-channel).(type) {
+		case *received:
+			logger.Debug("received recorded")
+		case *started:
+			logger.Debug("started recorded")
+		case *success:
+			logger.Debug("success recorded")
+		case *failure:
+			logger.Debug("failure recorded")
+		default:
+			logger.Error("Unhandled event type: %T", ev)
+		}
+
+	}
+	logger.Panic("recorder loop stopped")
+}
+
+// aggregates and writes event data
+func aggregate() {
+	// aggregate data
+	// evict old tasks
 }
 
 func main() {
 	eventChan := make(chan event, 200)
-	listener(eventChan)
-	dd := "{\"body\": \"eyJ1dWlkIjogIjZlYzc5ZjIxLTY4ZjEtNDFiNy1hNWUzLTNiMWUzZWU4OWFmZSIsICJjbG9jayI6IDcyLCAidGltZXN0YW1wIjogMTM4NjcwNDM1Ny45NTI1NTQsICJob3N0bmFtZSI6ICJCbGFrZXMtTWFjQm9vay1Qcm8ubG9jYWwiLCAicGlkIjogMjI5NDIsICJ0eXBlIjogInRhc2stc3RhcnRlZCJ9\", \"headers\": {}, \"content-type\": \"application/json\", \"properties\": {\"body_encoding\": \"base64\", \"delivery_info\": {\"priority\": 0, \"routing_key\": \"task.started\", \"exchange\": \"celeryev\"}, \"delivery_mode\": 2, \"delivery_tag\": \"49ac8bc1-53ad-4e39-ba47-075de6e2615c\"}, \"content-encoding\": \"utf-8\"}"
-	//	var ev1 event1
-	ev1 := make(map[string]interface {})
+	go listener(eventChan)
+	go recorder(eventChan)
 
-	if err := json.Unmarshal([]byte(dd), &ev1); err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Printf("\n%+v\n", ev1)
+	aggregateEvent := time.After(time.Duration(INTERVAL) * time.Second)
+	for {
+		select {
+		case <- aggregateEvent:
+			// do aggregation
+		}
 	}
-
-	//	ev2 := make(map[string]interface {})
-	src := ev1["body"].(string)
-	fmt.Println(src)
-	data, err := base64.URLEncoding.DecodeString(src)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(data)
-	fmt.Println(string(data))
-	ev2 := make(map[string]interface {})
-	if err := json.Unmarshal(data, &ev2); err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Printf("\n%+v\n", ev2)
-		ev1["body"] = ev2
-		fmt.Printf("\n%+v\n", ev1)
-	}
-
-	fmt.Printf("Hello world!")
-	fmt.Printf("Hello world!")
-	fmt.Printf("Hello world!")
 }
