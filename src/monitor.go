@@ -67,6 +67,34 @@ func init() {
 	if PATH == "" {
 		fmt.Println("path cannot be blank")
 		os.Exit(1)
+	} else if strings.ToUpper(PATH) == "STDOUT" || strings.ToUpper(PATH) == "STDERR" {
+		// do nothing
+	} else {
+		nfo, err := os.Stat(PATH)
+		if err != nil {
+			if os.IsNotExist(err) {
+				fp, err := os.Create(PATH)
+				if err != nil {
+					fmt.Printf("Error opening output path [%v] for writing: %v\n", PATH, err)
+					os.Exit(1)
+				}
+				fp.Close()
+			} else {
+				fmt.Printf("Error getting info on logpath [%v]: %v\n", PATH, err)
+				os.Exit(1)
+			}
+		} else {
+			if nfo.IsDir() {
+				fmt.Printf("Output path [%v] is a directory\n", PATH)
+				os.Exit(1)
+			}
+		}
+		fp, err := os.OpenFile(PATH, os.O_RDWR, 0644)
+		if err != nil {
+			fmt.Printf("Error opening output path [%v] for writing: %v\n", PATH, err)
+			os.Exit(1)
+		}
+		fp.Close()
 	}
 	logging.SetBackend()
 
