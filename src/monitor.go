@@ -104,15 +104,17 @@ func init() {
 type event interface {
 	GetID() string
 	GetTimestamp() time.Time
+	GetReceived() time.Time()
 }
 
 type baseEvent struct {
 	taskId string
-	timestamp time.Time
-	received time.Time
+	eventTime time.Time
+	receivedTime time.Time
 }
 func (e *baseEvent) GetID() string { return e.taskId }
-func (e *baseEvent) GetTimestamp() time.Time { return e.timestamp }
+func (e *baseEvent) GetTimestamp() time.Time { return e.eventTime }
+func (e *baseEvent) GetReceived() time.Time { return e.receivedTime }
 func (e *baseEvent) String() string { return fmt.Sprintf("id: %v, time: %v", e.taskId, e.timestamp) }
 
 type received struct {
@@ -178,7 +180,7 @@ func _sendEvent(channel chan<- event, data []byte, timeReceived time.Time) error
 		supported = supported || (msgType == t)
 	}
 	if !supported {
-		logger.Debug("Unsupported event type: %v", msgType)
+		logger.Debug("Ignored event type: %v", msgType)
 		return nil
 	}
 
@@ -193,13 +195,13 @@ func _sendEvent(channel chan<- event, data []byte, timeReceived time.Time) error
 	case "task-received":
 		name, ok := body["name"].(string)
 		if !ok { return fmt.Errorf("event name not found, or it was the wrong type: %v", body["type"]) }
-		ev = &received{taskName:name, baseEvent:baseEvent{taskId:taskId, timestamp:timestamp, received:timeReceived}}
+		ev = &received{taskName:name, baseEvent:baseEvent{taskId:taskId, eventTime:timestamp, receivedTime:timeReceived}}
 	case "task-started":
-		ev = &started{baseEvent{taskId:taskId, timestamp:timestamp, received:timeReceived}}
+		ev = &started{baseEvent{taskId:taskId, eventTime:timestamp, receivedTime:timeReceived}}
 	case "task-succeeded":
-		ev = &success{baseEvent{taskId:taskId, timestamp:timestamp, received:timeReceived}}
+		ev = &success{baseEvent{taskId:taskId, eventTime:timestamp, receivedTime:timeReceived}}
 	case "task-failed":
-		ev = &failure{baseEvent{taskId:taskId, timestamp:timestamp, received:timeReceived}}
+		ev = &failure{baseEvent{taskId:taskId, eventTime:timestamp, receivedTime:timeReceived}}
 	default:
 		return fmt.Errorf("Unknown event type: %v", msgType)
 	}
@@ -265,20 +267,30 @@ var startedTasks floatMap
 var successTasks floatMap
 var failedTasks floatMap
 
+func _aggregate(start time.Time) {
+
+}
+
 // records the event data
-func recorder(channel <-chan event) {
+func recorder(eventChan <-chan event, aggregateSignal <-chan time.Time) {
 	for {
-		switch ev := (<-channel).(type) {
-		case *received:
-			logger.Debug("received recorded")
-		case *started:
-			logger.Debug("started recorded")
-		case *success:
-			logger.Debug("success recorded")
-		case *failure:
-			logger.Debug("failure recorded")
-		default:
-			logger.Error("Unhandled event type: %T", ev)
+		select {
+		case evMsg := <- eventChan:
+			switch ev := (evMsg).(type) {
+			case *received:
+				logger.Debug("received recorded")
+			case *started:
+				logger.Debug("started recorded")
+			case *success:
+				logger.Debug("success recorded")
+			case *failure:
+				logger.Debug("failure recorded")
+			default:
+				logger.Error("Unhandled event type: %T", ev)
+			}
+		case aggStart := <- aggregateSignal:
+			logger.Debug("Aggregate signal received at %v", aggStart)
+			//
 		}
 
 	}
@@ -293,14 +305,18 @@ func aggregate(start time.Time) {
 
 func main() {
 	eventChan := make(chan event, 200)
+	aggregateSignal := make(chan time.Time)
 	go listener(eventChan)
-	go recorder(eventChan)
+	go recorder(eventChan, aggregateSignal)
 
+	// start periodically sending aggregation signals to the recorder
 	aggregateEvent := time.After(time.Duration(INTERVAL) * time.Second)
 	for {
 		select {
-		case <- aggregateEvent:
+		case start := <- aggregateEvent:
 			// do aggregation
+			aggregateEvent = time.After(time.Duration(INTERVAL) * time.Second)
+			aggregateSignal <- start
 		}
 	}
 }
