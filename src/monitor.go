@@ -117,28 +117,28 @@ func (e *baseEvent) GetTimestamp() time.Time { return e.eventTime }
 func (e *baseEvent) GetReceived() time.Time { return e.receivedTime }
 func (e *baseEvent) String() string { return fmt.Sprintf("id: %v, time: %v", e.taskId, e.eventTime) }
 
-type received struct {
+type Received struct {
 	baseEvent
 	taskName string
 }
 
-func (e *received) GetName() string { return e.taskName }
-func (e *received) String() string { return fmt.Sprintf("Task Received. name: %v, %v", e.taskName, e.baseEvent.String()) }
+func (e *Received) GetName() string { return e.taskName }
+func (e *Received) String() string { return fmt.Sprintf("Task Received. name: %v, %v", e.taskName, e.baseEvent.String()) }
 
-type started struct {
+type Started struct {
 	baseEvent
 }
-func (e *started) String() string { return fmt.Sprintf("Task Started. %v", e.baseEvent.String()) }
+func (e *Started) String() string { return fmt.Sprintf("Task Started. %v", e.baseEvent.String()) }
 
-type success struct {
+type Success struct {
 	baseEvent
 }
-func (e *success) String() string { return fmt.Sprintf("Task Success. %v", e.baseEvent.String()) }
+func (e *Success) String() string { return fmt.Sprintf("Task Success. %v", e.baseEvent.String()) }
 
-type failure struct {
+type Failure struct {
 	baseEvent
 }
-func (e *failure) String() string { return fmt.Sprintf("Task Failed. %v", e.baseEvent.String()) }
+func (e *Failure) String() string { return fmt.Sprintf("Task Failed. %v", e.baseEvent.String()) }
 
 // converts a fractional second unix timestamp to time.Time
 func floatToTime(ts float64) time.Time {
@@ -195,13 +195,13 @@ func _sendEvent(channel chan<- event, data []byte, timeReceived time.Time) error
 	case "task-received":
 		name, ok := body["name"].(string)
 		if !ok { return fmt.Errorf("event name not found, or it was the wrong type: %v", body["type"]) }
-		ev = &received{taskName:name, baseEvent:baseEvent{taskId:taskId, eventTime:timestamp, receivedTime:timeReceived}}
+		ev = &Received{taskName:name, baseEvent:baseEvent{taskId:taskId, eventTime:timestamp, receivedTime:timeReceived}}
 	case "task-started":
-		ev = &started{baseEvent{taskId:taskId, eventTime:timestamp, receivedTime:timeReceived}}
+		ev = &Started{baseEvent{taskId:taskId, eventTime:timestamp, receivedTime:timeReceived}}
 	case "task-succeeded":
-		ev = &success{baseEvent{taskId:taskId, eventTime:timestamp, receivedTime:timeReceived}}
+		ev = &Success{baseEvent{taskId:taskId, eventTime:timestamp, receivedTime:timeReceived}}
 	case "task-failed":
-		ev = &failure{baseEvent{taskId:taskId, eventTime:timestamp, receivedTime:timeReceived}}
+		ev = &Failure{baseEvent{taskId:taskId, eventTime:timestamp, receivedTime:timeReceived}}
 	default:
 		return fmt.Errorf("Unknown event type: %v", msgType)
 	}
@@ -256,32 +256,32 @@ type TaskId string
 
 type TaskTracker struct {
 	name string
-	received map[TaskId] *received
-	started map[TaskId] *started
-	success map[TaskId] *success
-	failure map[TaskId] *failure
+	received map[TaskId] *Received
+	started map[TaskId] *Started
+	success map[TaskId] *Success
+	failure map[TaskId] *Failure
 }
 
 func NewTaskTracker(name string) *TaskTracker {
 	tt := &TaskTracker{
 		name:name,
-		received:make(map[TaskId]*received),
-		started:make(map[TaskId]*started),
-		success:make(map[TaskId]*success),
-		failure:make(map[TaskId]*failure),
+		received:make(map[TaskId]*Received),
+		started:make(map[TaskId]*Started),
+		success:make(map[TaskId]*Success),
+		failure:make(map[TaskId]*Failure),
 	}
 	return tt
 }
 
 func (t *TaskTracker) ReceiveEvent(newEv event) error {
 	switch ev := (newEv).(type) {
-	case *received:
+	case *Received:
 		t.received[ev.GetID()] = ev
-	case *started:
+	case *Started:
 		t.started[ev.GetID()] = ev
-	case *success:
+	case *Success:
 		t.success[ev.GetID()] = ev
-	case *failure:
+	case *Failure:
 		t.failure[ev.GetID()] = ev
 	default:
 		return fmt.Errorf("Unhandled event type: %T", ev)
@@ -309,7 +309,7 @@ func recorder(eventChan <-chan event, aggregateSignal <-chan time.Time) {
 		case ev := <- eventChan:
 			var tracker *TaskTracker
 
-			if receiveMsg, ok := ev.(*received); ok {
+			if receiveMsg, ok := ev.(*Received); ok {
 				name := receiveMsg.GetName()
 				tracker = trackers[name]
 				if trackers == nil {
