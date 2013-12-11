@@ -120,6 +120,8 @@ func (e *baseEvent) String() string { return fmt.Sprintf("id: %v, time: %v", e.t
 type Received struct {
 	baseEvent
 	taskName string
+	started time.Time
+	terminated time.Time
 }
 
 func (e *Received) GetName() string { return e.taskName }
@@ -307,19 +309,18 @@ func recorder(eventChan <-chan event, aggregateSignal <-chan time.Time) {
 	for {
 		select {
 		case ev := <- eventChan:
-			var tracker *TaskTracker
 
 			if receiveMsg, ok := ev.(*Received); ok {
 				name := receiveMsg.GetName()
-				tracker = trackers[name]
+				tracker := trackers[name]
 				if trackers == nil {
 					tracker := NewTaskTracker(name)
 					trackers[name] = tracker
 				}
 				idTrackerMap[receiveMsg.GetID()] = tracker
 			}
-			tracker= idTrackerMap[ev.GetID()]
-			if trackers == nil {
+			tracker := idTrackerMap[ev.GetID()]
+			if tracker == nil {
 				logger.Info("No tracker found for task %v", ev.GetID())
 				continue
 			}
