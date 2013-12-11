@@ -103,16 +103,16 @@ func init() {
 
 type event interface {
 	GetID() string
-	GetTimestamp() float64
+	GetTimestamp() time.Time
 }
 
 type baseEvent struct {
 	taskId string
-	timestamp float64
+	timestamp time.Time
 	received time.Time
 }
 func (e *baseEvent) GetID() string { return e.taskId }
-func (e *baseEvent) GetTimestamp() float64 { return e.timestamp }
+func (e *baseEvent) GetTimestamp() time.Time { return e.timestamp }
 func (e *baseEvent) String() string { return fmt.Sprintf("id: %v, time: %v", e.taskId, e.timestamp) }
 
 type received struct {
@@ -137,6 +137,14 @@ type failure struct {
 	baseEvent
 }
 func (e *failure) String() string { return fmt.Sprintf("Task Failed. %v", e.baseEvent.String()) }
+
+// converts a fractional second unix timestamp to time.Time
+func floatToTime(ts float64) time.Time {
+	seconds := int64(ts)
+	fraction := ts - float64(seconds)
+	nanoseconds := int64(float64(time.Second) * fraction)
+	return time.Unix(seconds, nanoseconds)
+}
 
 func _sendEvent(channel chan<- event, data []byte, timeReceived time.Time) error {
 	eventMsg := make(map[string]interface {})
@@ -176,8 +184,9 @@ func _sendEvent(channel chan<- event, data []byte, timeReceived time.Time) error
 
 	taskId, ok := body["uuid"].(string)
 	if !ok { return fmt.Errorf("event did not include type uuid, or it was the wrong type: %v", body["uuid"]) }
-	timestamp, ok := body["timestamp"].(float64)
+	seconds, ok := body["timestamp"].(float64)
 	if !ok { return fmt.Errorf("event did not include type timestamp, or it was the wrong type: %v", body["timestamp"]) }
+	timestamp := floatToTime(seconds)
 
 	var ev event
 	switch msgType {
@@ -277,7 +286,7 @@ func recorder(channel <-chan event) {
 }
 
 // aggregates and writes event data
-func aggregate() {
+func aggregate(start time.Time) {
 	// aggregate data
 	// evict old tasks
 }
