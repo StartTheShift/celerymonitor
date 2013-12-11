@@ -7,11 +7,16 @@ import (
 	"fmt"
 	"encoding/json"
 	"encoding/base64"
+	"io"
+	"log"
 	"os"
+	"strings"
 	"time"
 )
 
 import (
+	// aliased import
+	logging "github.com/op/go-logging"
 	"github.com/garyburd/redigo/redis"
 )
 
@@ -21,16 +26,27 @@ var DEBUG uint
 var PATH string
 var HOST string
 var PORT uint
+var LOGPATH string
+var LOGLEVEL string
 
 func init() {
 	var help bool
+	// aggregations
 	flag.UintVar(&HORIZON, "horizon", 60*5, "how much time (in seconds) to include in the output file")
 	flag.UintVar(&INTERVAL, "interval", 60, "how often (in seconds) to output data")
-	flag.UintVar(&DEBUG, "debug", 0, "amount of debug info to print")
 	flag.StringVar(&PATH, "output", "/tmp/celerymunin.out", "path to output statistics")
+
+	flag.UintVar(&DEBUG, "debug", 0, "amount of debug info to print")
+
+	// redis
 	flag.StringVar(&HOST, "host", "localhost", "redis host to connect to")
 	flag.UintVar(&PORT, "port", 6379, "redis port to connect to")
 	flag.BoolVar(&help, "help", false, "prints help info")
+
+	// logging
+	flag.StringVar(&LOGPATH, "log-path", "stdout", "logging path, stderr and stdout work too")
+	flag.StringVar(&LOGLEVEL, "log-level", "WARNING", "logging level")
+
 	flag.Parse()
 	if help {
 		fmt.Println("monitors celery events and periodically saves to disk for use in monitoring applications")
@@ -50,6 +66,36 @@ func init() {
 	if PATH == "" {
 		fmt.Println("path cannot be blank")
 		os.Exit(1)
+	}
+	logging.SetBackend()
+
+	// logging
+	LOGLEVEL = strings.ToUpper(LOGLEVEL)
+	if level, err := logging.LogLevel(LOGLEVEL); err != nil {
+		fmt.Printf("Bad log level: %v\n", err)
+		os.Exit(1)
+	} else {
+		logging.SetLevel(level, "monitor")
+	}
+
+	if LOGPATH == "" {
+		fmt.Println("path cannot be blank")
+		os.Exit(1)
+	} else {
+		var logOut io.Writer
+		if strings.ToUpper(LOGPATH) == "STDOUT" {
+			logOut = os.Stdout
+		} else if strings.ToUpper(LOGPATH) == "STDERR" {
+			logOut = os.Stderr
+		} else {
+			var err error
+			logOut, err = os.Open(LOGPATH)
+			if err != nil {
+				fmt.Println("Error opening log path: ", err)
+				os.Exit(1)
+			}
+		}
+		logging.SetBackend(logging.NewLogBackend(logOut, "", log.LstdFlags))
 	}
 }
 
