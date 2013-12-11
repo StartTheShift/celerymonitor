@@ -120,8 +120,6 @@ func (e *baseEvent) String() string { return fmt.Sprintf("id: %v, time: %v", e.t
 type Received struct {
 	baseEvent
 	taskName string
-	started time.Time
-	terminated time.Time
 }
 
 func (e *Received) GetName() string { return e.taskName }
@@ -256,8 +254,23 @@ func listener(channel chan<- event) {
 // task tracking
 type TaskId string
 
+type TaskState struct {
+	taskId TaskId
+	received time.Time
+	started time.Time
+	terminated time.Time
+	successful bool
+	lastSeen time.Time
+	newInfo bool
+}
+
+func (t *TaskState) CanEvict() bool {
+	return !t.terminated.IsZero()
+}
+
 type TaskTracker struct {
 	name string
+	states map[TaskId] *TaskState
 	received map[TaskId] *Received
 	started map[TaskId] *Started
 	success map[TaskId] *Success
@@ -276,25 +289,47 @@ func NewTaskTracker(name string) *TaskTracker {
 }
 
 func (t *TaskTracker) ReceiveEvent(newEv event) error {
+
+	var ts *TaskState
+	if state, exists := t.states[newEv.GetID()]; exists {
+		ts = state
+	} else {
+		ts = &TaskState{taskId:newEv.GetID()}
+		t.states[newEv.GetID()] = ts
+	}
+	ts.lastSeen = newEv.GetReceived()
+	ts.newInfo = true
+
 	switch ev := (newEv).(type) {
 	case *Received:
-		t.received[ev.GetID()] = ev
+		ts.received = newEv.GetReceived()
 	case *Started:
-		t.started[ev.GetID()] = ev
+		ts.started = newEv.GetReceived()
 	case *Success:
-		t.success[ev.GetID()] = ev
+		ts.terminated = newEv.GetReceived()
+		ts.successful = true
 	case *Failure:
-		t.failure[ev.GetID()] = ev
+		ts.terminated = newEv.GetReceived()
+		ts.successful = false
 	default:
 		return fmt.Errorf("Unhandled event type: %T", ev)
 	}
 	return nil
 }
 
-// removes old tasks, and returns a list
-// of purged task ids
-func (t *TaskTracker) Clean() []TaskId {
+// removes all tasks that were terminated before the horizon time
+func (t *TaskTracker) Reset(horizon time.Time) []TaskId {
+//	evicted := make([]TaskId, 0, 100)
+//	for tid, tracker := range t.states {
+////		if
+//
+//	}
 	return []TaskId{}
+}
+
+// aggregates all of the info after the horizon
+func (t *TaskTracker) Aggregate(horizon time.Time) {
+
 }
 
 var trackers map[string] *TaskTracker
