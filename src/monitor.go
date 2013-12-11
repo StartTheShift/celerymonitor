@@ -102,20 +102,20 @@ func init() {
 }
 
 type event interface {
-	GetID() string
+	GetID() TaskId
 	GetTimestamp() time.Time
-	GetReceived() time.Time()
+	GetReceived() time.Time
 }
 
 type baseEvent struct {
-	taskId string
+	taskId TaskId
 	eventTime time.Time
 	receivedTime time.Time
 }
-func (e *baseEvent) GetID() string { return e.taskId }
+func (e *baseEvent) GetID() TaskId { return e.taskId }
 func (e *baseEvent) GetTimestamp() time.Time { return e.eventTime }
 func (e *baseEvent) GetReceived() time.Time { return e.receivedTime }
-func (e *baseEvent) String() string { return fmt.Sprintf("id: %v, time: %v", e.taskId, e.timestamp) }
+func (e *baseEvent) String() string { return fmt.Sprintf("id: %v, time: %v", e.taskId, e.eventTime) }
 
 type received struct {
 	baseEvent
@@ -184,7 +184,7 @@ func _sendEvent(channel chan<- event, data []byte, timeReceived time.Time) error
 		return nil
 	}
 
-	taskId, ok := body["uuid"].(string)
+	taskId, ok := body["uuid"].(TaskId)
 	if !ok { return fmt.Errorf("event did not include type uuid, or it was the wrong type: %v", body["uuid"]) }
 	seconds, ok := body["timestamp"].(float64)
 	if !ok { return fmt.Errorf("event did not include type timestamp, or it was the wrong type: %v", body["timestamp"]) }
@@ -251,21 +251,52 @@ func listener(channel chan<- event) {
 	logger.Panic("listener loop stopped")
 }
 
-// set of tasks seen
-type stringSet map[string] bool
-type timeMap map[string] time.Time
-type floatMap map[string] float64
-type stringMap map[string] string
-var knownTasks stringSet
+// task tracking
+type TaskId string
 
-// maps id to name
-var taskNames stringMap
+type TaskTracker struct {
+	name string
+	received map[TaskId] *received
+	started map[TaskId] *started
+	success map[TaskId] *success
+	failure map[TaskId] *failure
+}
 
-// maps of ids to the timestamps the finished
-var receivedTasks floatMap
-var startedTasks floatMap
-var successTasks floatMap
-var failedTasks floatMap
+func NewTaskTracker(name string) *TaskTracker {
+	tt := &TaskTracker{
+		name:name,
+		received:make(map[TaskId]*received),
+		started:make(map[TaskId]*started),
+		success:make(map[TaskId]*success),
+		failure:make(map[TaskId]*failure),
+	}
+	return tt
+}
+
+func (t *TaskTracker) ReceiveEvent(newEv event) error {
+	switch ev := (newEv).(type) {
+	case *received:
+		t.received[ev.GetID()] = ev
+	case *started:
+		t.started[ev.GetID()] = ev
+	case *success:
+		t.success[ev.GetID()] = ev
+	case *failure:
+		t.failure[ev.GetID()] = ev
+	default:
+		return fmt.Errorf("Unhandled event type: %T", ev)
+	}
+	return nil
+}
+
+// removes old tasks, and returns a list
+// of purged task ids
+func (t *TaskTracker) Clean() []TaskId {
+	return []TaskId{}
+}
+
+var trackers map[string] *TaskTracker
+var idTrackerMap map[TaskId] *TaskTracker
 
 func _aggregate(start time.Time) {
 
@@ -275,19 +306,25 @@ func _aggregate(start time.Time) {
 func recorder(eventChan <-chan event, aggregateSignal <-chan time.Time) {
 	for {
 		select {
-		case evMsg := <- eventChan:
-			switch ev := (evMsg).(type) {
-			case *received:
-				logger.Debug("received recorded")
-			case *started:
-				logger.Debug("started recorded")
-			case *success:
-				logger.Debug("success recorded")
-			case *failure:
-				logger.Debug("failure recorded")
-			default:
-				logger.Error("Unhandled event type: %T", ev)
+		case ev := <- eventChan:
+			var tracker *TaskTracker
+
+			if receiveMsg, ok := ev.(*received); ok {
+				name := receiveMsg.GetName()
+				tracker = trackers[name]
+				if trackers == nil {
+					tracker := NewTaskTracker(name)
+					trackers[name] = tracker
+				}
+				idTrackerMap[receiveMsg.GetID()] = tracker
 			}
+			tracker= idTrackerMap[ev.GetID()]
+			if trackers == nil {
+				logger.Info("No tracker found for task %v", ev.GetID())
+				continue
+			}
+			tracker.ReceiveEvent(ev)
+
 		case aggStart := <- aggregateSignal:
 			logger.Debug("Aggregate signal received at %v", aggStart)
 			//
