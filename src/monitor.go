@@ -28,6 +28,7 @@ var HOST string
 var PORT uint
 var LOGPATH string
 var LOGLEVEL string
+var logger *logging.Logger
 
 func init() {
 	var help bool
@@ -97,6 +98,7 @@ func init() {
 		}
 		logging.SetBackend(logging.NewLogBackend(logOut, "", log.LstdFlags))
 	}
+	logger = logging.MustGetLogger("monitor")
 }
 
 type event interface {
@@ -147,9 +149,7 @@ func _sendEvent(channel chan<- event, data []byte) error {
 	}
 
 	bodyJs, err := base64.URLEncoding.DecodeString(body64)
-	if err != nil {
-		fmt.Println(err)
-	}
+	if err != nil { return err }
 
 	body := make(map[string]interface {})
 	if err := json.Unmarshal(bodyJs, &body); err != nil {
@@ -159,10 +159,20 @@ func _sendEvent(channel chan<- event, data []byte) error {
 	msgType, ok := body["type"].(string)
 	// not the right type of message, quietly exit
 	if !ok {
-		if DEBUG >= 2 { fmt.Printf("Invalid body, skipping. %v\n", eventMsg) }
+		logger.Debug("Invalid body, skipping. %v", eventMsg)
 		return nil
 	}
-	fmt.Println(msgType)
+
+	// check that this is a supported event
+	supported := false
+	for _, t := range []string{"task-received", "task-started", "task-succeeded", "task-failed"} {
+		supported = supported || (msgType == t)
+	}
+	if !supported {
+		logger.Debug("Unsupported event type: %v", msgType)
+		return nil
+	}
+
 	taskId, ok := body["uuid"].(string)
 	if !ok { return fmt.Errorf("event did not include type uuid, or it was the wrong type: %v", body["uuid"]) }
 	timestamp, ok := body["timestamp"].(float64)
@@ -183,7 +193,7 @@ func _sendEvent(channel chan<- event, data []byte) error {
 	default:
 		return fmt.Errorf("Unknown event type: %v", msgType)
 	}
-	if DEBUG >= 2 { fmt.Println(ev) }
+	logger.Debug("%+v", ev)
 
 	channel <- ev
 
@@ -196,8 +206,7 @@ func listener(channel chan event) {
 	for {
 		conn, err := redis.Dial("tcp", fmt.Sprintf("%v:%v", HOST, PORT))
 		if err != nil {
-			fmt.Printf("Error connecting to Redis: %v\n", err)
-			fmt.Printf("Waiting 1 sec")
+			logger.Error("Error connecting to Redis: %v\nWaiting 1 sec", err)
 			time.Sleep(1 * time.Second)
 			continue
 		}
@@ -208,13 +217,13 @@ func listener(channel chan event) {
 				switch v := psc.Receive().(type) {
 				case redis.Message:
 					if err := _sendEvent(channel, v.Data); err != nil {
-						fmt.Printf("Error processing event: %v\n", err)
+						logger.Error("Error processing event: %v", err)
 					} else {
 						if DEBUG >= 3 { fmt.Println(string(v.Data)) }
 					}
 
 				case redis.Subscription:
-					fmt.Printf("Subscribed to: %v", v.Channel)
+					logger.Info("Subscribed to: %v", v.Channel)
 
 				case error:
 					// kill connection and start over
