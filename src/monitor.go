@@ -216,8 +216,9 @@ func _sendEvent(channel chan<- event, data []byte, timeReceived time.Time) error
 		return nil
 	}
 
-	taskId, ok := body["uuid"].(TaskId)
+	taskUUID, ok := body["uuid"].(string)
 	if !ok { return fmt.Errorf("event did not include type uuid, or it was the wrong type: %v", body["uuid"]) }
+	taskId := TaskId(taskUUID)
 	seconds, ok := body["timestamp"].(float64)
 	if !ok { return fmt.Errorf("event did not include type timestamp, or it was the wrong type: %v", body["timestamp"]) }
 	timestamp := floatToTime(seconds)
