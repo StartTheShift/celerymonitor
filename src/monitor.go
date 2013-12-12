@@ -114,27 +114,31 @@ func init() {
 	} else if strings.ToUpper(PATH) == "STDOUT" || strings.ToUpper(PATH) == "STDERR" {
 		// do nothing
 	} else {
-		nfo, err := os.Stat(PATH)
-		if err != nil {
-			if os.IsNotExist(err) {
-				fp, err := os.Create(PATH)
-				if err != nil {
-					logger.Fatalf("Error opening output path [%v] for writing: %v\n", PATH, err)
+		verifyPath := func(p string) {
+			nfo, err := os.Stat(p)
+			if err != nil {
+				if os.IsNotExist(err) {
+					fp, err := os.Create(p)
+					if err != nil {
+						logger.Fatalf("Error opening output path [%v] for writing: %v\n", p, err)
+					}
+					fp.Close()
+				} else {
+					logger.Fatalf("Error getting info on logpath [%v]: %v\n", p, err)
 				}
-				fp.Close()
 			} else {
-				logger.Fatalf("Error getting info on logpath [%v]: %v\n", PATH, err)
+				if nfo.IsDir() {
+					logger.Fatalf("Output path [%v] is a directory\n", p)
+				}
 			}
-		} else {
-			if nfo.IsDir() {
-				logger.Fatalf("Output path [%v] is a directory\n", PATH)
+			fp, err := os.OpenFile(p, os.O_RDWR, 0644)
+			if err != nil {
+				logger.Fatalf("Error opening output path [%v] for writing: %v\n", p, err)
 			}
+			fp.Close()
 		}
-		fp, err := os.OpenFile(PATH, os.O_RDWR, 0644)
-		if err != nil {
-			logger.Fatalf("Error opening output path [%v] for writing: %v\n", PATH, err)
-		}
-		fp.Close()
+		verifyPath(PATH)
+		verifyPath(PATH + ".work")
 	}
 	logger.Info("Output path: %v", PATH)
 }
@@ -452,15 +456,18 @@ func output(stats interface {}) {
 		os.Stderr.Write(data)
 		os.Stderr.Write([]byte("\n\n"))
 	} else {
-		fp, err := os.OpenFile(PATH, os.O_RDWR, 0644)
+		fp, err := os.Create(PATH + ".work")
 		if err != nil {
 			logger.Error("Error opening output path [%v] for writing: %v\n", PATH, err)
+		} else {
+			if _, err := fp.Write(data); err != nil {
+				logger.Error("Error writing data to output file: %v", err)
+			}
+			fp.Close()
 		}
-		if _, err := fp.Write(data); err != nil {
-			logger.Error("Error writing data to output file: %v", err)
+		if err := os.Rename(PATH + ".work", PATH); err != nil {
+			logger.Error("Error overwriting previous output file: %v", err)
 		}
-
-		fp.Close()
 	}
 }
 
