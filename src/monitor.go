@@ -319,6 +319,19 @@ type TaskStat struct {
 	failureTime float64
 }
 
+func (ts *TaskStat) Object() map[string] interface {} {
+	return map[string] interface {} {
+		"name":ts.name,
+		"num_received":ts.numReceived,
+		"num_started":ts.numStarted,
+		"num_success":ts.numSuccess,
+		"num_failed":ts.numFailed,
+		"start_time":ts.startLag,
+		"success_time":ts.successTime,
+		"failure_time":ts.failureTime,
+	}
+}
+
 type TaskTracker struct {
 	name string
 	states map[TaskId] *TaskState
@@ -460,7 +473,7 @@ func aggregate(start time.Time) {
 	tasks := make(map[string] interface {})
 	for name, tracker := range trackers {
 		ts := tracker.Aggregate(horizon)
-		tasks[name] = *ts
+		tasks[name] = ts.Object()
 	}
 	result["tasks"] = tasks
 
