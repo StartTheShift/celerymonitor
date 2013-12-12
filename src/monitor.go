@@ -272,7 +272,7 @@ func listener(channel chan<- event) {
 					if err := _sendEvent(channel, v.Data, t); err != nil {
 						logger.Error("Error processing event: %v", err)
 					} else {
-						if DEBUG >= 3 { fmt.Println(string(v.Data)) }
+						logger.Debug(string(v.Data))
 					}
 
 				case redis.Subscription:
@@ -284,7 +284,7 @@ func listener(channel chan<- event) {
 					break eventLoop
 
 				default:
-					fmt.Println("Unknown type", v)
+					logger.Debug("Unknown type", v)
 				}
 			}
 	}
@@ -503,7 +503,6 @@ func recorder(eventChan <-chan event, aggregateSignal <-chan time.Time) {
 			if receiveMsg, ok := ev.(*Received); ok {
 				name := receiveMsg.GetName()
 				tracker := trackers[name]
-				fmt.Println(tracker)
 				if tracker == nil {
 					tracker := NewTaskTracker(name)
 					trackers[name] = tracker
