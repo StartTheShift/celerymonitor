@@ -28,6 +28,7 @@ var HOST string
 var PORT uint
 var LOGPATH string
 var LOGLEVEL string
+var QUEUES []string
 var logger *logging.Logger
 
 func init() {
@@ -410,7 +411,15 @@ var trackers map[string] *TaskTracker
 var idTrackerMap map[TaskId] *TaskTracker
 
 func _aggregate(start time.Time) {
+	for name, tracker := range trackers {
 
+	}
+
+	// get queues
+	conn, err := redis.Dial("tcp", fmt.Sprintf("%v:%v", HOST, PORT))
+	if err != nil {
+		logger.Error("Error connecting to Redis: %v\nWaiting 1 sec", err)
+	}
 }
 
 // records the event data
