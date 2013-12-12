@@ -18,6 +18,7 @@ import (
 	// aliased import
 	logging "github.com/op/go-logging"
 	"github.com/garyburd/redigo/redis"
+	yaml "launchpad.net/goyaml"
 )
 
 var HORIZON uint
