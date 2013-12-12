@@ -50,6 +50,9 @@ func init() {
 	flag.StringVar(&LOGPATH, "log-path", "stdout", "logging path, stderr and stdout work too")
 	flag.StringVar(&LOGLEVEL, "log-level", "WARNING", "logging level")
 
+	var queues string
+	flag.StringVar(&queues, "queues", "", "comma separated list of queues to monitor, if any")
+
 	flag.Parse()
 	if help {
 		fmt.Println("monitors celery events and periodically saves to disk for use in monitoring applications")
@@ -86,6 +89,12 @@ func init() {
 	} else {
 		logging.SetLevel(level, "monitor")
 	}
+
+	QUEUES = strings.Split(queues, ",")
+	for idx, queue := range QUEUES {
+		QUEUES[idx] = strings.Trim(queue, " ")
+	}
+	logger.Info("Monitoring queues: %+v", QUEUES)
 
 
 	// validate command params
