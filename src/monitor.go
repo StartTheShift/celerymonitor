@@ -434,15 +434,24 @@ func output(data []byte) {
 }
 
 
-func _aggregate(start time.Time) {
+func aggregate(start time.Time) {
+	horizon := start.Add(time.Duration(-HORIZON))
+	output := make(map[string] interface {})
+	tasks := make(map[string] interface {})
 	for name, tracker := range trackers {
-
+		ts := tracker.Aggregate(horizon)
+		tasks[name] = *ts
 	}
+	output["tasks"] = tasks
 
 	// get queues
+	queues := make(map[string] interface {})
+	_ = queues
 	conn, err := redis.Dial("tcp", fmt.Sprintf("%v:%v", HOST, PORT))
+	_ = conn
 	if err != nil {
 		logger.Error("Error connecting to Redis: %v\nWaiting 1 sec", err)
+		return
 	}
 }
 
@@ -475,12 +484,6 @@ func recorder(eventChan <-chan event, aggregateSignal <-chan time.Time) {
 
 	}
 	logger.Panic("recorder loop stopped")
-}
-
-// aggregates and writes event data
-func aggregate(start time.Time) {
-	// aggregate data
-	// evict old tasks
 }
 
 func main() {
