@@ -405,6 +405,25 @@ func (t *TaskTracker) Aggregate(horizon time.Time) *TaskStat {
 var trackers map[string] *TaskTracker
 var idTrackerMap map[TaskId] *TaskTracker
 
+func output(data []byte) {
+	if strings.ToUpper(PATH) == "STDOUT" {
+		os.Stdout.Write(data)
+	} else if strings.ToUpper(PATH) == "STDOUT" {
+		os.Stderr.Write(data)
+	} else {
+		fp, err := os.OpenFile(PATH, os.O_RDWR, 0644)
+		if err != nil {
+			logger.Error("Error opening output path [%v] for writing: %v\n", PATH, err)
+		}
+		if _, err := fp.Write(data); err != nil {
+			logger.Error("Error writing data to output file: %v", err)
+		}
+
+		fp.Close()
+	}
+}
+
+
 func _aggregate(start time.Time) {
 	for name, tracker := range trackers {
 
