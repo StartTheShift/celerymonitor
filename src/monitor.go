@@ -307,9 +307,9 @@ type TaskStat struct {
 	numStarted uint32
 	numSuccess uint32
 	numFailed int32
-	startLag time.Duration
-	successTime time.Duration
-	failureTime time.Duration
+	startLag float64
+	successTime float64
+	failureTime float64
 }
 
 type TaskTracker struct {
@@ -387,26 +387,26 @@ func (t *TaskTracker) Aggregate(horizon time.Time) *TaskStat {
 		}
 		if s.started.After(horizon) {
 			ts.numStarted++
-			ts.startLag += s.started.Sub(s.received)
+			ts.startLag += float64(s.started.Sub(s.received))
 			startTimes++
 		}
 		if s.terminated.After(horizon) {
 			if s.successful {
 				ts.numSuccess++
-				ts.successTime += s.terminated.Sub(s.started)
+				ts.successTime += float64(s.terminated.Sub(s.started)) / float64(time.Second)
 				successTimes++
 			} else {
 				ts.numFailed++
-				ts.failureTime += s.terminated.Sub(s.started)
+				ts.failureTime += float64(s.terminated.Sub(s.started)) / float64(time.Second)
 				failureTimes++
 			}
 		}
 	}
 
 	// compute averages
-	if startTimes > 0 { ts.startLag = time.Duration(float64(ts.startLag) / float64(startTimes)) }
-	if successTimes > 0 { ts.successTime = time.Duration(float64(ts.successTime) / float64(successTimes)) }
-	if failureTimes > 0 { ts.failureTime = time.Duration(float64(ts.failureTime) / float64(failureTimes)) }
+	if startTimes > 0 { ts.startLag = ts.startLag / float64(startTimes) }
+	if successTimes > 0 { ts.successTime = ts.successTime / float64(successTimes) }
+	if failureTimes > 0 { ts.failureTime = ts.failureTime / float64(failureTimes) }
 
 	return ts
 }
