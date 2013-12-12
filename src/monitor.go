@@ -337,18 +337,15 @@ func NewTaskTracker(name string) *TaskTracker {
 func (t *TaskTracker) ReceiveEvent(newEv event) error {
 
 	var ts *TaskState
-	if state, exists := t.states[newEv.GetID()]; exists {
-		ts = state
-	} else {
+	if _, ok := newEv.(*Received); ok {
 		ts = &TaskState{taskId:newEv.GetID()}
 		t.states[newEv.GetID()] = ts
+	} else {
+		ts = t.states[newEv.GetID()]
+		if ts == nil {
+			return fmt.Errorf("Unrecognized task: %v", newEv.GetID())
+		}
 	}
-	ts.lastSeen = newEv.GetReceived()
-	ts.newInfo = true
-
-	then := time.Now()
-	now := time.Now()
-	then.Sub(now).Nanoseconds()
 
 	switch ev := (newEv).(type) {
 	case *Received:
