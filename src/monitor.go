@@ -131,8 +131,6 @@ func init() {
 		}
 		fp.Close()
 	}
-	logging.SetBackend()
-
 }
 
 type event interface {
@@ -249,6 +247,7 @@ func _sendEvent(channel chan<- event, data []byte, timeReceived time.Time) error
 // listens on redis for events
 // and stuffs them into the event channel
 func listener(channel chan<- event) {
+	logger.Info("Starting listener loop")
 	for {
 		conn, err := redis.Dial("tcp", fmt.Sprintf("%v:%v", HOST, PORT))
 		if err != nil {
@@ -457,6 +456,7 @@ func aggregate(start time.Time) {
 
 // records the event data
 func recorder(eventChan <-chan event, aggregateSignal <-chan time.Time) {
+	logger.Info("Starting recorder loop")
 	for {
 		select {
 		case ev := <- eventChan:
