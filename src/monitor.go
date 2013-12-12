@@ -101,9 +101,14 @@ func init() {
 	if HORIZON == uint(0) {
 		logger.Fatal("horizon must be greater than 0")
 	}
+	logger.Info("Horizon set at %v seconds", HORIZON)
+
+
 	if INTERVAL == uint(0) {
 		logger.Fatal("interval must be greater than 0")
 	}
+	logger.Info("Interval set at %v seconds", INTERVAL)
+
 	if PATH == "" {
 		logger.Fatal("path cannot be blank")
 	} else if strings.ToUpper(PATH) == "STDOUT" || strings.ToUpper(PATH) == "STDERR" {
@@ -131,6 +136,7 @@ func init() {
 		}
 		fp.Close()
 	}
+	logger.Info("Output path: %v", PATH)
 }
 
 type event interface {
