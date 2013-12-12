@@ -56,58 +56,7 @@ func init() {
 		os.Exit(0)
 	}
 
-	// validate command params
-	if HORIZON == uint(0) {
-		fmt.Println("horizon must be greater than 0")
-		os.Exit(1)
-	}
-	if INTERVAL == uint(0) {
-		fmt.Println("interval must be greater than 0")
-		os.Exit(1)
-	}
-	if PATH == "" {
-		fmt.Println("path cannot be blank")
-		os.Exit(1)
-	} else if strings.ToUpper(PATH) == "STDOUT" || strings.ToUpper(PATH) == "STDERR" {
-		// do nothing
-	} else {
-		nfo, err := os.Stat(PATH)
-		if err != nil {
-			if os.IsNotExist(err) {
-				fp, err := os.Create(PATH)
-				if err != nil {
-					fmt.Printf("Error opening output path [%v] for writing: %v\n", PATH, err)
-					os.Exit(1)
-				}
-				fp.Close()
-			} else {
-				fmt.Printf("Error getting info on logpath [%v]: %v\n", PATH, err)
-				os.Exit(1)
-			}
-		} else {
-			if nfo.IsDir() {
-				fmt.Printf("Output path [%v] is a directory\n", PATH)
-				os.Exit(1)
-			}
-		}
-		fp, err := os.OpenFile(PATH, os.O_RDWR, 0644)
-		if err != nil {
-			fmt.Printf("Error opening output path [%v] for writing: %v\n", PATH, err)
-			os.Exit(1)
-		}
-		fp.Close()
-	}
-	logging.SetBackend()
-
 	// logging
-	LOGLEVEL = strings.ToUpper(LOGLEVEL)
-	if level, err := logging.LogLevel(LOGLEVEL); err != nil {
-		fmt.Printf("Bad log level: %v\n", err)
-		os.Exit(1)
-	} else {
-		logging.SetLevel(level, "monitor")
-	}
-
 	if LOGPATH == "" {
 		fmt.Println("path cannot be blank")
 		os.Exit(1)
@@ -128,6 +77,52 @@ func init() {
 		logging.SetBackend(logging.NewLogBackend(logOut, "", log.LstdFlags))
 	}
 	logger = logging.MustGetLogger("monitor")
+
+	LOGLEVEL = strings.ToUpper(LOGLEVEL)
+	if level, err := logging.LogLevel(LOGLEVEL); err != nil {
+		logger.Fatalf("Bad log level: %v\n", err)
+		os.Exit(1)
+	} else {
+		logging.SetLevel(level, "monitor")
+	}
+
+
+	// validate command params
+	if HORIZON == uint(0) {
+		logger.Fatal("horizon must be greater than 0")
+	}
+	if INTERVAL == uint(0) {
+		logger.Fatal("interval must be greater than 0")
+	}
+	if PATH == "" {
+		logger.Fatal("path cannot be blank")
+	} else if strings.ToUpper(PATH) == "STDOUT" || strings.ToUpper(PATH) == "STDERR" {
+		// do nothing
+	} else {
+		nfo, err := os.Stat(PATH)
+		if err != nil {
+			if os.IsNotExist(err) {
+				fp, err := os.Create(PATH)
+				if err != nil {
+					logger.Fatalf("Error opening output path [%v] for writing: %v\n", PATH, err)
+				}
+				fp.Close()
+			} else {
+				logger.Fatalf("Error getting info on logpath [%v]: %v\n", PATH, err)
+			}
+		} else {
+			if nfo.IsDir() {
+				logger.Fatalf("Output path [%v] is a directory\n", PATH)
+			}
+		}
+		fp, err := os.OpenFile(PATH, os.O_RDWR, 0644)
+		if err != nil {
+			logger.Fatalf("Error opening output path [%v] for writing: %v\n", PATH, err)
+		}
+		fp.Close()
+	}
+	logging.SetBackend()
+
 }
 
 type event interface {
