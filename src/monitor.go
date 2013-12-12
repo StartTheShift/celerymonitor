@@ -434,6 +434,7 @@ func output(data []byte) {
 
 
 func aggregate(start time.Time) {
+	logger.Info("New aggregation started for %v", start)
 	horizon := start.Add(time.Duration(-HORIZON))
 	output := make(map[string] interface {})
 	tasks := make(map[string] interface {})
@@ -452,6 +453,22 @@ func aggregate(start time.Time) {
 		logger.Error("Error connecting to Redis: %v\nWaiting 1 sec", err)
 		return
 	}
+	for _, queue := range QUEUES {
+		logger.Debug("Getting queue length for %v", queue)
+		conn.Send("llen", queue)
+		conn.Flush()
+		if response, err := conn.Receive(); err != nil {
+			logger.Error("Error getting queue length %v from redis: %v", queue, err)
+		} else {
+			if size, ok := response.(int64); !ok {
+				logger.Error("Unexpected llen response type. Expected int64, got %T", response)
+			} else {
+				queues[queue] = size
+			}
+		}
+	}
+	output["queues"] = queues
+	logger.Debug("Aggregation finished for %v", start)
 }
 
 // records the event data
@@ -479,6 +496,7 @@ func recorder(eventChan <-chan event, aggregateSignal <-chan time.Time) {
 
 		case aggStart := <- aggregateSignal:
 			logger.Debug("Aggregate signal received at %v", aggStart)
+			aggregate(aggStart)
 			//
 		}
 
