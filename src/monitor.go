@@ -329,6 +329,7 @@ func NewTaskTracker(name string) *TaskTracker {
 		started:make(map[TaskId]*Started),
 		success:make(map[TaskId]*Success),
 		failure:make(map[TaskId]*Failure),
+		states:make(map[TaskId]*TaskState),
 	}
 	return tt
 }
@@ -414,6 +415,11 @@ func (t *TaskTracker) Aggregate(horizon time.Time) *TaskStat {
 
 var trackers map[string] *TaskTracker
 var idTrackerMap map[TaskId] *TaskTracker
+
+func init() {
+	trackers = make(map[string] *TaskTracker)
+	idTrackerMap = make(map[TaskId] *TaskTracker)
+}
 
 func output(stats interface {}) {
 	logger.Debug("Outputting stats to: %v", PATH)
