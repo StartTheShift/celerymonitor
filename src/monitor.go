@@ -238,7 +238,7 @@ func _sendEvent(channel chan<- event, data []byte, timeReceived time.Time) error
 	default:
 		return fmt.Errorf("Unknown event type: %v", msgType)
 	}
-	logger.Debug("%v", ev)
+	logger.Debug("New Event: %v", ev)
 
 	channel <- ev
 
@@ -495,9 +495,11 @@ func recorder(eventChan <-chan event, aggregateSignal <-chan time.Time) {
 			if receiveMsg, ok := ev.(*Received); ok {
 				name := receiveMsg.GetName()
 				tracker := trackers[name]
-				if trackers == nil {
+				fmt.Println(tracker)
+				if tracker == nil {
 					tracker := NewTaskTracker(name)
 					trackers[name] = tracker
+					logger.Info("Tracker created for %v", name)
 				}
 				idTrackerMap[receiveMsg.GetID()] = tracker
 			}
