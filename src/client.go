@@ -15,6 +15,19 @@ const (
 	DERIVE = GraphType("DERIVE")
 )
 
+type GraphName string
+
+const (
+	task_success = GraphName("task_success")
+	task_started = GraphName("task_started")
+	task_failed = GraphName("task_failed")
+	task_received = GraphName("task_received")
+	task_success_time = GraphName("task_success_time")
+	task_failed_time = GraphName("task_failed_time")
+	task_start_time = GraphName("task_start_time")
+	queue_length = GraphName("queue_length")
+)
+
 func undot(s string) string {
 	return strings.Replace(s, ".", "_", -1)
 }
@@ -58,7 +71,7 @@ func configure(tasks []string, queues []string) {
 	if len(tasks) > 0 {
 		multigraph(
 			tasks,
-			"task_success",
+			task_success,
 			"Successful Tasks",
 			GAUGE,
 			"Successful tasks per 5 min",
@@ -67,7 +80,7 @@ func configure(tasks []string, queues []string) {
 		)
 		multigraph(
 			tasks,
-			"task_started",
+			task_started,
 			"Started Tasks",
 			GAUGE,
 			"Started tasks per 5 min",
@@ -76,7 +89,7 @@ func configure(tasks []string, queues []string) {
 		)
 		multigraph(
 			tasks,
-			"task_failed",
+			task_failed,
 			"Failed Tasks",
 			GAUGE,
 			"Failed tasks per 5 min",
@@ -85,7 +98,7 @@ func configure(tasks []string, queues []string) {
 		)
 		multigraph(
 			tasks,
-			"task_received",
+			task_received,
 			"Received Tasks",
 			GAUGE,
 			"Tasks receivedper 5 min",
@@ -94,7 +107,7 @@ func configure(tasks []string, queues []string) {
 		)
 		multigraph(
 			tasks,
-			"task_success_time",
+			task_success_time,
 			"Success Time",
 			GAUGE,
 			"Avg time to task success",
@@ -103,7 +116,7 @@ func configure(tasks []string, queues []string) {
 		)
 		multigraph(
 			tasks,
-			"task_failed_time",
+			task_failed_time,
 			"Failure Time",
 			GAUGE,
 			"Avg time to task failure",
@@ -112,7 +125,7 @@ func configure(tasks []string, queues []string) {
 		)
 		multigraph(
 			tasks,
-			"task_start_time",
+			task_start_time,
 			"Start Time",
 			GAUGE,
 			"Avg time to start task",
@@ -123,7 +136,7 @@ func configure(tasks []string, queues []string) {
 	if len(queues) > 1 {
 		multigraph(
 			queues,
-			"queue_length",
+			queue_length,
 			"Queue Length",
 			GAUGE,
 			"Queue Length",
