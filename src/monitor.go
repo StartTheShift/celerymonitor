@@ -441,17 +441,16 @@ func output(stats interface {}) {
 	}
 }
 
-
 func aggregate(start time.Time) {
 	logger.Info("New aggregation started for %v", start)
 	horizon := start.Add(time.Duration(-HORIZON))
-	output := make(map[string] interface {})
+	result := make(map[string] interface {})
 	tasks := make(map[string] interface {})
 	for name, tracker := range trackers {
 		ts := tracker.Aggregate(horizon)
 		tasks[name] = *ts
 	}
-	output["tasks"] = tasks
+	result["tasks"] = tasks
 
 	// get queues
 	queues := make(map[string] interface {})
@@ -476,9 +475,11 @@ func aggregate(start time.Time) {
 			}
 		}
 	}
-	output["queues"] = queues
+	result["queues"] = queues
 	logger.Debug("Aggregation finished for %v", start)
+	output(result)
 }
+
 
 // records the event data
 func recorder(eventChan <-chan event, aggregateSignal <-chan time.Time) {
