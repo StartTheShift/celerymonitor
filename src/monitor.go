@@ -414,11 +414,20 @@ func (t *TaskTracker) Aggregate(horizon time.Time) *TaskStat {
 var trackers map[string] *TaskTracker
 var idTrackerMap map[TaskId] *TaskTracker
 
-func output(data []byte) {
+func output(stats interface {}) {
+	logger.Debug("Outputting stats to: %v", PATH)
+	data, err := yaml.Marshal(stats)
+	if err != nil {
+		logger.Error("Error marshalling stats: %v", err)
+	}
 	if strings.ToUpper(PATH) == "STDOUT" {
+		os.Stdout.Write([]byte("\n\n"))
 		os.Stdout.Write(data)
+		os.Stdout.Write([]byte("\n\n"))
 	} else if strings.ToUpper(PATH) == "STDOUT" {
+		os.Stderr.Write([]byte("\n\n"))
 		os.Stderr.Write(data)
+		os.Stderr.Write([]byte("\n\n"))
 	} else {
 		fp, err := os.OpenFile(PATH, os.O_RDWR, 0644)
 		if err != nil {
