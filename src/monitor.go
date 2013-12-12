@@ -453,7 +453,9 @@ func output(stats interface {}) {
 
 func aggregate(start time.Time) {
 	logger.Info("New aggregation started for %v", start)
-	horizon := start.Add(time.Duration(-HORIZON))
+	horizon := start.Add(-time.Duration(HORIZON) * time.Second)
+	logger.Info("Aggregating events between %v & %v", horizon, start)
+	if horizon.After(start) { panic("horizon if after start") }
 	result := make(map[string] interface {})
 	tasks := make(map[string] interface {})
 	for name, tracker := range trackers {
