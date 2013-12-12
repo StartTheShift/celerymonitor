@@ -296,6 +296,17 @@ func (t *TaskState) CanEvict() bool {
 	return !t.terminated.IsZero()
 }
 
+type TaskStat struct {
+	name string
+	numReceived uint32
+	numStarted uint32
+	numSuccess uint32
+	numFailed int32
+	startLag time.Duration
+	successTime time.Duration
+	failureTime time.Duration
+}
+
 type TaskTracker struct {
 	name string
 	states map[TaskId] *TaskState
@@ -328,6 +339,10 @@ func (t *TaskTracker) ReceiveEvent(newEv event) error {
 	ts.lastSeen = newEv.GetReceived()
 	ts.newInfo = true
 
+	then := time.Now()
+	now := time.Now()
+	then.Sub(now).Nanoseconds()
+
 	switch ev := (newEv).(type) {
 	case *Received:
 		ts.received = newEv.GetReceived()
@@ -356,8 +371,39 @@ func (t *TaskTracker) Reset(horizon time.Time) []TaskId {
 }
 
 // aggregates all of the info after the horizon
-func (t *TaskTracker) Aggregate(horizon time.Time) {
+func (t *TaskTracker) Aggregate(horizon time.Time) *TaskStat {
+	ts := &TaskStat{name:t.name}
+	startTimes := int64(0)
+	successTimes := int64(0)
+	failureTimes := int64(0)
+	for _, s := range t.states {
+		if s.received.After(horizon) {
+			ts.numReceived++
+		}
+		if s.started.After(horizon) {
+			ts.numStarted++
+			ts.startLag += s.started.Sub(s.received)
+			startTimes++
+		}
+		if s.terminated.After(horizon) {
+			if s.successful {
+				ts.numSuccess++
+				ts.successTime += s.terminated.Sub(s.started)
+				successTimes++
+			} else {
+				ts.numFailed++
+				ts.failureTime += s.terminated.Sub(s.started)
+				failureTimes++
+			}
+		}
+	}
 
+	// compute averages
+	if startTimes > 0 { ts.startLag = time.Duration(float64(ts.startLag) / float64(startTimes)) }
+	if successTimes > 0 { ts.successTime = time.Duration(float64(ts.successTime) / float64(successTimes)) }
+	if failureTimes > 0 { ts.failureTime = time.Duration(float64(ts.failureTime) / float64(failureTimes)) }
+
+	return ts
 }
 
 var trackers map[string] *TaskTracker
