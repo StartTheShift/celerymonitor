@@ -1,4 +1,4 @@
-package main
+package munin
 
 import (
 	"fmt"
@@ -207,7 +207,7 @@ func comma_separate(s string) []string {
 	return entries
 }
 
-func main() {
+func RunMuninPlugin() {
 	tasks := comma_separate(os.Getenv("tasks"))
 	queues := comma_separate(os.Getenv("queues"))
 	if len(tasks) == 0  && len(queues) == 0 {
