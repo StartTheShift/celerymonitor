@@ -2,9 +2,14 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
+)
+
+import (
+	yaml "launchpad.net/goyaml"
 )
 
 type GraphType string
@@ -33,7 +38,7 @@ func undot(s string) string {
 }
 
 // prepends the parent, and undots the item
-func parent(parent string, item string) string {
+func parent(parent GraphName, item string) string {
 	return fmt.Sprintf("%v_%v", parent, undot(item))
 }
 
@@ -45,7 +50,7 @@ func Map(src []string, f func(string)string) []string {
 	return dst
 }
 
-func multigraph(entries []string, id string, name string, graph_type GraphType, vlabel string, category string, info string) {
+func multigraph(entries []string, id GraphName, name string, graph_type GraphType, vlabel string, category string, info string) {
 	pp := func(s string) string { return parent(id, s) }
 
 	fmt.Printf("multigraph %v\n", strings.ToLower(strings.Replace(name, " ", "_", -1)))
@@ -144,15 +149,48 @@ func configure(tasks []string, queues []string) {
 			"This graph shows queue sizes over time",
 		)
 	}
-
-
 }
 
 // prints metrics for the tasks
 func output(tasks []string, queues []string) {
+
+	get_int := func(i interface {}) int {
+		v, _ := i.(int)
+		return v
+	}
+	get_float := func(i interface {}) float64 {
+		v, _ := i.(float64)
+		return v
+	}
+
 	data_path := os.Getenv("data_path")
 	if data_path == "" { data_path = "/tmp/celerymunin.out" }
 
+	data := make(map[string] interface {})
+	if b, err := ioutil.ReadFile(data_path); err == nil {
+		err = yaml.Unmarshal(b, data)
+	} else {
+	}
+
+	task_data, _ := data["tasks"].(map[interface {}]interface {})
+	fmt.Printf("%T", data["tasks"])
+	queue_data, _ := data["queues"].(map[interface {}]interface {})
+
+	for _, task := range tasks {
+		td, _ := task_data[task].(map[interface {}] interface{})
+		fmt.Printf("%v %v\n", parent(task_received, task), get_int(td["num_received"]))
+		fmt.Printf("%v %v\n", parent(task_started, task), get_int(td["num_started"]))
+		fmt.Printf("%v %v\n", parent(task_failed, task), get_int(td["num_failed"]))
+		fmt.Printf("%v %v\n", parent(task_success, task), get_int(td["num_success"]))
+		fmt.Printf("%v %f\n", parent(task_start_time, task), get_float(td["start_time"]))
+		fmt.Printf("%v %f\n", parent(task_success_time, task), get_float(td["success_time"]))
+		fmt.Printf("%v %f\n", parent(task_failed_time, task), get_float(td["failure_time"]))
+	}
+
+	for _, queue := range queues {
+		qd, _ := queue_data[queue].(map[interface {}] interface{})
+		fmt.Printf("%v %v\n", parent(task_received, queue), get_int(qd["num_received"]))
+	}
 }
 
 // separates by comma, trims, sorts, and returns
