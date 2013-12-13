@@ -423,6 +423,27 @@ func (t *TaskTracker) Aggregate(horizon time.Time) *TaskStat {
 	return ts
 }
 
+// removes all states that have terminated
+func (t *TaskTracker) CleanupTerminated() []TaskId {
+	keys := make([]TaskId, 0, len(t.states))
+	for key := range t.states {
+		keys = append(keys, key)
+	}
+
+	evicted := make([]TaskId, 0, len(t.states))
+	for _, key := range keys {
+		state, exists := t.states[key]
+		if !exists {
+			evicted = append(evicted, key)
+			continue
+		} else if state.CanEvict() {
+			delete(t.states, key)
+			evicted = append(evicted, key)
+		}
+	}
+	return evicted
+}
+
 var trackers map[string] *TaskTracker
 var idTrackerMap map[TaskId] *TaskTracker
 
@@ -458,6 +479,19 @@ func output(stats interface {}) {
 		if err := os.Rename(PATH + ".work", PATH); err != nil {
 			logger.Error("Error overwriting previous output file: %v", err)
 		}
+	}
+}
+
+func cleanup() {
+	to_evict := make([]TaskId, 0, 1000)
+	for _, tracker := range trackers {
+		evicted := tracker.CleanupTerminated()
+		if len(evicted) > 0 {
+			to_evict = append(to_evict, evicted...)
+		}
+	}
+	for _, key := range to_evict {
+		delete(idTrackerMap, key)
 	}
 }
 
@@ -500,6 +534,8 @@ func aggregate(start time.Time) {
 	result["queues"] = queues
 	logger.Debug("Aggregation finished for %v", start)
 	output(result)
+	cleanup()
+
 }
 
 
