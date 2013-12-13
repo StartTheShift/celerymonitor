@@ -476,7 +476,7 @@ func output(stats interface {}) {
 	}
 }
 
-func cleanup() {
+func cleanup() []TaskId {
 	to_evict := make([]TaskId, 0, 1000)
 	for _, tracker := range trackers {
 		evicted := tracker.CleanupTerminated()
@@ -487,6 +487,7 @@ func cleanup() {
 	for _, key := range to_evict {
 		delete(idTrackerMap, key)
 	}
+	return to_evict
 }
 
 func aggregate(start time.Time) {
