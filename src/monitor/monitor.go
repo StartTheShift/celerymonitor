@@ -396,7 +396,7 @@ func (t *TaskTracker) Aggregate(horizon time.Time) *TaskStat {
 		}
 		if s.started.After(horizon) {
 			ts.numStarted++
-			ts.startLag += float64(s.started.Sub(s.received))
+			ts.startLag += float64(s.started.Sub(s.received)) / float64(time.Second)
 		}
 		if s.terminated.After(horizon) {
 			if s.successful {
