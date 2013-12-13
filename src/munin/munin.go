@@ -173,7 +173,6 @@ func output(tasks []string, queues []string) {
 	}
 
 	task_data, _ := data["tasks"].(map[interface {}]interface {})
-	fmt.Printf("%T", data["tasks"])
 	queue_data, _ := data["queues"].(map[interface {}]interface {})
 
 	for _, task := range tasks {
