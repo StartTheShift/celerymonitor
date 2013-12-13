@@ -387,16 +387,6 @@ func (t *TaskTracker) ReceiveEvent(newEv event) error {
 	return nil
 }
 
-// removes all tasks that were terminated before the horizon time
-func (t *TaskTracker) Reset(horizon time.Time) []TaskId {
-//	evicted := make([]TaskId, 0, 100)
-//	for tid, tracker := range t.states {
-////		if
-//
-//	}
-	return []TaskId{}
-}
-
 // aggregates all of the info after the horizon
 func (t *TaskTracker) Aggregate(horizon time.Time) *TaskStat {
 	ts := &TaskStat{name:t.name}
