@@ -80,7 +80,7 @@ func configure(tasks []string, queues []string) {
 			"Successful Tasks",
 			GAUGE,
 			"Successful tasks per 5 min",
-			"celery_tasks",
+			"tasks",
 			"This graph shows the number of successful tasks per 5min",
 		)
 		multigraph(
@@ -89,7 +89,7 @@ func configure(tasks []string, queues []string) {
 			"Started Tasks",
 			GAUGE,
 			"Started tasks per 5 min",
-			"celery_tasks",
+			"tasks",
 			"This graph shows the number of tasks started per 5min",
 		)
 		multigraph(
@@ -98,7 +98,7 @@ func configure(tasks []string, queues []string) {
 			"Failed Tasks",
 			GAUGE,
 			"Failed tasks per 5 min",
-			"celery_tasks",
+			"tasks",
 			"This graph shows the number of failed tasks per 5min",
 		)
 		multigraph(
@@ -107,7 +107,7 @@ func configure(tasks []string, queues []string) {
 			"Received Tasks",
 			GAUGE,
 			"Tasks receivedper 5 min",
-			"celery_tasks",
+			"tasks",
 			"This graph shows the number of tasks received per 5min",
 		)
 		multigraph(
@@ -116,7 +116,7 @@ func configure(tasks []string, queues []string) {
 			"Success Time",
 			GAUGE,
 			"Avg time to task success",
-			"celery_tasks",
+			"tasks",
 			"This graph shows the average time to completion for successful tasks",
 		)
 		multigraph(
@@ -125,7 +125,7 @@ func configure(tasks []string, queues []string) {
 			"Failure Time",
 			GAUGE,
 			"Avg time to task failure",
-			"celery_tasks",
+			"tasks",
 			"This graph shows the average time to fail for tasks",
 		)
 		multigraph(
@@ -134,7 +134,7 @@ func configure(tasks []string, queues []string) {
 			"Start Time",
 			GAUGE,
 			"Avg time to start task",
-			"celery_tasks",
+			"tasks",
 			"This graph shows the average time it takes a task to start after it's received",
 		)
 	}
@@ -145,7 +145,7 @@ func configure(tasks []string, queues []string) {
 			"Queue Length",
 			GAUGE,
 			"Queue Length",
-			"celery_tasks",
+			"queues",
 			"This graph shows queue sizes over time",
 		)
 	}
