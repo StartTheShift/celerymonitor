@@ -390,9 +390,6 @@ func (t *TaskTracker) ReceiveEvent(newEv event) error {
 // aggregates all of the info after the horizon
 func (t *TaskTracker) Aggregate(horizon time.Time) *TaskStat {
 	ts := &TaskStat{name:t.name}
-	startTimes := int64(0)
-	successTimes := int64(0)
-	failureTimes := int64(0)
 	for _, s := range t.states {
 		if s.received.After(horizon) {
 			ts.numReceived++
@@ -400,25 +397,22 @@ func (t *TaskTracker) Aggregate(horizon time.Time) *TaskStat {
 		if s.started.After(horizon) {
 			ts.numStarted++
 			ts.startLag += float64(s.started.Sub(s.received))
-			startTimes++
 		}
 		if s.terminated.After(horizon) {
 			if s.successful {
 				ts.numSuccess++
 				ts.successTime += float64(s.terminated.Sub(s.started)) / float64(time.Second)
-				successTimes++
 			} else {
 				ts.numFailed++
 				ts.failureTime += float64(s.terminated.Sub(s.started)) / float64(time.Second)
-				failureTimes++
 			}
 		}
 	}
 
 	// compute averages
-	if startTimes > 0 { ts.startLag = ts.startLag / float64(startTimes) }
-	if successTimes > 0 { ts.successTime = ts.successTime / float64(successTimes) }
-	if failureTimes > 0 { ts.failureTime = ts.failureTime / float64(failureTimes) }
+	if ts.numStarted > 0 { ts.startLag = ts.startLag / float64(ts.numStarted) }
+	if ts.numSuccess > 0 { ts.successTime = ts.successTime / float64(ts.numSuccess) }
+	if ts.numFailed > 0 { ts.failureTime = ts.failureTime / float64(ts.numFailed) }
 
 	return ts
 }
