@@ -218,6 +218,11 @@ func RunMuninPlugin() {
 		fmt.Println("Need at least one task or queue")
 		os.Exit(1)
 	}
+
+	call := os.Args[0]
+	split_call := strings.Split(call, "_")
+	MODE = split_call[len(split_call) - 1]
+
 	if len(os.Args) > 1 && os.Args[1] == "config" {
 		configure(tasks, queues)
 	} else {
