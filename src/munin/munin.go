@@ -51,12 +51,12 @@ func Map(src []string, f func(string)string) []string {
 }
 
 // determines which graph config will be shown
-var MODE string
+var MODE GraphName
 
 func multigraph(entries []string, id GraphName, name string, graph_type GraphType, vlabel string, category string, info string) {
 	pp := func(s string) string { return parent(id, s) }
 
-	fmt.Printf("multigraph %v\n", strings.ToLower(strings.Replace(name, " ", "_", -1)))
+//	fmt.Printf("multigraph %v\n", strings.ToLower(strings.Replace(name, " ", "_", -1)))
 	fmt.Printf("graph_title %v\n", name)
 	fmt.Printf("graph_order %v\n", strings.Join(Map(entries, pp), " "))
 	fmt.Println("graph_args --base 1000 --lower-limit 0")
@@ -77,80 +77,96 @@ func multigraph(entries []string, id GraphName, name string, graph_type GraphTyp
 func configure(tasks []string, queues []string) {
 	//task graphs
 	if len(tasks) > 0 {
-		multigraph(
-			tasks,
-			task_success,
-			"Successful Tasks",
-			GAUGE,
-			"Successful tasks per 5 min",
-			"tasks",
-			"This graph shows the number of successful tasks per 5min",
-		)
-		multigraph(
-			tasks,
-			task_started,
-			"Started Tasks",
-			GAUGE,
-			"Started tasks per 5 min",
-			"tasks",
-			"This graph shows the number of tasks started per 5min",
-		)
-		multigraph(
-			tasks,
-			task_failed,
-			"Failed Tasks",
-			GAUGE,
-			"Failed tasks per 5 min",
-			"tasks",
-			"This graph shows the number of failed tasks per 5min",
-		)
-		multigraph(
-			tasks,
-			task_received,
-			"Received Tasks",
-			GAUGE,
-			"Tasks receivedper 5 min",
-			"tasks",
-			"This graph shows the number of tasks received per 5min",
-		)
-		multigraph(
-			tasks,
-			task_success_time,
-			"Success Time",
-			GAUGE,
-			"Avg time to task success",
-			"tasks",
-			"This graph shows the average time to completion for successful tasks",
-		)
-		multigraph(
-			tasks,
-			task_failed_time,
-			"Failure Time",
-			GAUGE,
-			"Avg time to task failure",
-			"tasks",
-			"This graph shows the average time to fail for tasks",
-		)
-		multigraph(
-			tasks,
-			task_start_time,
-			"Start Time",
-			GAUGE,
-			"Avg time to start task",
-			"tasks",
-			"This graph shows the average time it takes a task to start after it's received",
-		)
+		if MODE == task_success {
+			multigraph(
+				tasks,
+				task_success,
+				"Successful Tasks",
+				GAUGE,
+				"Successful tasks per 5 min",
+				"tasks",
+				"This graph shows the number of successful tasks per 5min",
+			)
+		}
+		if MODE == task_started {
+			multigraph(
+				tasks,
+				task_started,
+				"Started Tasks",
+				GAUGE,
+				"Started tasks per 5 min",
+				"tasks",
+				"This graph shows the number of tasks started per 5min",
+			)
+		}
+		if MODE == task_failed {
+			multigraph(
+				tasks,
+				task_failed,
+				"Failed Tasks",
+				GAUGE,
+				"Failed tasks per 5 min",
+				"tasks",
+				"This graph shows the number of failed tasks per 5min",
+			)
+		}
+		if MODE == task_received {
+			multigraph(
+				tasks,
+				task_received,
+				"Received Tasks",
+				GAUGE,
+				"Tasks receivedper 5 min",
+				"tasks",
+				"This graph shows the number of tasks received per 5min",
+			)
+		}
+		if MODE == task_success_time {
+			multigraph(
+				tasks,
+				task_success_time,
+				"Success Time",
+				GAUGE,
+				"Avg time to task success",
+				"tasks",
+				"This graph shows the average time to completion for successful tasks",
+			)
+		}
+		if MODE == task_failed_time {
+			multigraph(
+				tasks,
+				task_failed_time,
+				"Failure Time",
+				GAUGE,
+				"Avg time to task failure",
+				"tasks",
+				"This graph shows the average time to fail for tasks",
+			)
+		}
+		if MODE == task_start_time {
+			multigraph(
+				tasks,
+				task_start_time,
+				"Start Time",
+				GAUGE,
+				"Avg time to start task",
+				"tasks",
+				"This graph shows the average time it takes a task to start after it's received",
+			)
+		}
 	}
 	if len(queues) > 1 {
-		multigraph(
-			queues,
-			queue_length,
-			"Queue Size",
-			GAUGE,
-			"Queue Size",
-			"queues",
-			"This graph shows queue sizes over time",
-		)
+		if MODE == queue_length {
+			multigraph(
+				queues,
+				queue_length,
+				"Queue Size",
+				GAUGE,
+				"Queue Size",
+				"queues",
+				"This graph shows queue sizes over time",
+			)
+		}
 	}
 }
 
@@ -220,8 +236,16 @@ func RunMuninPlugin() {
 	}
 
 	call := os.Args[0]
-	split_call := strings.Split(call, "_")
-	MODE = split_call[len(split_call) - 1]
+	split_call := strings.Split(call, "/")
+	file := split_call[len(split_call) - 1]
+	file_split := strings.Split(file, "_")
+	MODE = GraphName(strings.Join(file_split[1:], "_"))
+
+	fmt.Println("# Celery Munin")
+	fmt.Println("# tasks", tasks)
+	fmt.Println("# queues", queues)
+	fmt.Println("# mode", MODE)
+
 
 	if len(os.Args) > 1 && os.Args[1] == "config" {
 		configure(tasks, queues)
