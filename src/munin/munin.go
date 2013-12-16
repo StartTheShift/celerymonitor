@@ -38,8 +38,8 @@ func undot(s string) string {
 }
 
 // prepends the parent, and undots the item
-func parent(parent GraphName, item string) string {
-	return fmt.Sprintf("%v_%v", parent, undot(item))
+func parent(parent_name GraphName, item string) string {
+	return fmt.Sprintf("%v_%v", parent_name, undot(item))
 }
 
 func Map(src []string, f func(string)string) []string {
