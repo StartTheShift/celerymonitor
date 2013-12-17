@@ -19,9 +19,9 @@ by monitoring plugins (only munin is currently supported)
 
 ### Monitor
 
-The monitor is configured through several command arguments, this should be running continuously
+The celerymonitor application continuously monitors the celery events channel, and should always be running.
+celerymonitor is configured through several command arguments, the options are as follows:
 
-The options are as follows:
   * horizon (default 300): how much time (in seconds) to include in the output file
   * host (default localhost): redis host to connect to
   * interval (default 60): how often (in seconds) to output data
@@ -35,7 +35,9 @@ The options are as follows:
 
 To configure munin monitoring:
 
-First, make the following symlinks, targeting the munin binary, in the /etc/munin/plugins/ directory:
+First, upload the compiled celerymunin binary
+
+Second, make the following symlinks, targeting the celerymunin binary, in the /etc/munin/plugins/ directory:
 
     * celery_task_success
     * celery_task_started
@@ -46,7 +48,7 @@ First, make the following symlinks, targeting the munin binary, in the /etc/muni
     * celery_task_start_time
     * celery_queue_length
 
-Second, create a plugin configuration file in `/etc/munin/plugin-conf.d/celery.conf`, with these settings:
+Third, create a plugin configuration file in `/etc/munin/plugin-conf.d/celery.conf`, with these settings:
 ```
 [celery_*]
 env.tasks task1,task2,task3
