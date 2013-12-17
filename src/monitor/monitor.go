@@ -23,7 +23,6 @@ import (
 
 var HORIZON uint
 var INTERVAL uint
-var DEBUG uint
 var PATH string
 var HOST string
 var PORT uint
@@ -38,8 +37,6 @@ func init() {
 	flag.UintVar(&HORIZON, "horizon", 60*5, "how much time (in seconds) to include in the output file")
 	flag.UintVar(&INTERVAL, "interval", 60, "how often (in seconds) to output data")
 	flag.StringVar(&PATH, "output", "/tmp/celerymunin.out", "path to output statistics")
-
-	flag.UintVar(&DEBUG, "debug", 0, "amount of debug info to print")
 
 	// redis
 	flag.StringVar(&HOST, "host", "localhost", "redis host to connect to")
