@@ -7,13 +7,13 @@ by monitoring plugins (only munin is currently supported)
 
 ## Build
 
-1) install go
-2) install go linux64 compiler
+1. install go
+2. install go linux64 compiler
     * `cd /usr/local/go/src`
     * `sudo CC=clang GOOS=linux GOARCH=amd64 ./make.bash --no-clean`
-3) cd into celerymunin directory
-4) run `make`
-5) linux64 binaries will be in `build/linux64`
+3. cd into celerymunin directory
+4. run `make`
+5. linux64 binaries will be in `build/linux64`
 
 ## Usage
 
@@ -36,6 +36,7 @@ The options are as follows:
 To configure munin monitoring:
 
 First, make the following symlinks, targeting the munin binary, in the /etc/munin/plugins/ directory:
+
     * celery_task_success
     * celery_task_started
     * celery_task_failed
