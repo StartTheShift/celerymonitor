@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"encoding/json"
 	"encoding/base64"
+	"expvar"
 	"io"
 	"log"
 	"os"
@@ -245,7 +246,7 @@ func _sendEvent(channel chan<- event, data []byte, timeReceived time.Time) error
 	default:
 		return fmt.Errorf("Unknown event type: %v", msgType)
 	}
-	logger.Debug("New Event: %v", ev)
+//	logger.Debug("New Event: %v", ev)
 
 	channel <- ev
 
@@ -433,6 +434,15 @@ var idTrackerMap map[TaskId] *TaskTracker
 func init() {
 	trackers = make(map[string] *TaskTracker)
 	idTrackerMap = make(map[TaskId] *TaskTracker)
+	expvar.Publish("num_trackers", expvar.Func(func () interface {} { return len(trackers) }))
+	expvar.Publish("id_tracker_size", expvar.Func(func () interface {} { return len(idTrackerMap) }))
+	expvar.Publish("states", expvar.Func(func () interface {} {
+			lmap := make(map[string] int)
+			for key, tracker := range trackers {
+				lmap[key] = len(tracker.states)
+			}
+			return lmap
+		}))
 }
 
 func output(stats interface {}) {
