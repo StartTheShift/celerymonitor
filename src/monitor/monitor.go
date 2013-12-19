@@ -336,19 +336,11 @@ func (ts *TaskStat) Object() map[string] interface {} {
 type TaskTracker struct {
 	name string
 	states map[TaskId] *TaskState
-	received map[TaskId] *Received
-	started map[TaskId] *Started
-	success map[TaskId] *Success
-	failure map[TaskId] *Failure
 }
 
 func NewTaskTracker(name string) *TaskTracker {
 	tt := &TaskTracker{
 		name:name,
-		received:make(map[TaskId]*Received),
-		started:make(map[TaskId]*Started),
-		success:make(map[TaskId]*Success),
-		failure:make(map[TaskId]*Failure),
 		states:make(map[TaskId]*TaskState),
 	}
 	return tt
