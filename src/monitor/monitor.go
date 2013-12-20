@@ -27,6 +27,7 @@ var INTERVAL uint
 var PATH string
 var HOST string
 var PORT uint
+var TTL uint
 var LOGPATH string
 var LOGLEVEL string
 var QUEUES []string
@@ -38,6 +39,8 @@ func init() {
 	flag.UintVar(&HORIZON, "horizon", 60*5, "how much time (in seconds) to include in the output file")
 	flag.UintVar(&INTERVAL, "interval", 60, "how often (in seconds) to output data")
 	flag.StringVar(&PATH, "output", "/tmp/celerymunin.out", "path to output statistics")
+
+	flag.UintVar(&TTL, "ttl", 12*60*60, "how long an unterminated task will be retained for (prevents memory leaks by culling orphaned tasks)")
 
 	// redis
 	flag.StringVar(&HOST, "host", "localhost", "redis host to connect to")
@@ -414,6 +417,7 @@ func (t *TaskTracker) CleanupTerminated() []TaskId {
 		keys = append(keys, key)
 	}
 
+	now := time.Now()
 	evicted := make([]TaskId, 0, len(t.states))
 	for _, key := range keys {
 		state, exists := t.states[key]
@@ -421,6 +425,9 @@ func (t *TaskTracker) CleanupTerminated() []TaskId {
 			evicted = append(evicted, key)
 			continue
 		} else if state.CanEvict() {
+			delete(t.states, key)
+			evicted = append(evicted, key)
+		} else if state.received.Before(now.Add(-time.Duration(TTL) * time.Second)) {
 			delete(t.states, key)
 			evicted = append(evicted, key)
 		}
