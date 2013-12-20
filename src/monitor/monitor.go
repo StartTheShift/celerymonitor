@@ -322,6 +322,7 @@ type TaskStat struct {
 	startLag float64
 	successTime float64
 	failureTime float64
+	expired uint32
 }
 
 func (ts *TaskStat) Object() map[string] interface {} {
@@ -334,12 +335,14 @@ func (ts *TaskStat) Object() map[string] interface {} {
 		"start_time":ts.startLag,
 		"success_time":ts.successTime,
 		"failure_time":ts.failureTime,
+		"expired":ts.expired,
 	}
 }
 
 type TaskTracker struct {
 	name string
 	states map[TaskId] *TaskState
+	lastExpired uint32
 }
 
 func NewTaskTracker(name string) *TaskTracker {
@@ -417,6 +420,7 @@ func (t *TaskTracker) CleanupTerminated() []TaskId {
 		keys = append(keys, key)
 	}
 
+	t.lastExpired = 0
 	now := time.Now()
 	evicted := make([]TaskId, 0, len(t.states))
 	for _, key := range keys {
@@ -430,6 +434,7 @@ func (t *TaskTracker) CleanupTerminated() []TaskId {
 		} else if state.received.Before(now.Add(-time.Duration(TTL) * time.Second)) {
 			delete(t.states, key)
 			evicted = append(evicted, key)
+			t.lastExpired++
 		}
 	}
 	return evicted
