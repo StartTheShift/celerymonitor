@@ -30,6 +30,7 @@ const (
 	task_success_time = GraphName("task_success_time")
 	task_failed_time = GraphName("task_failed_time")
 	task_start_time = GraphName("task_start_time")
+	task_expired = GraphName("task_expired")
 	queue_length = GraphName("queue_length")
 )
 
@@ -154,6 +155,17 @@ func configure(tasks []string, queues []string) {
 				"This graph shows the average time it takes a task to start after it's received",
 			)
 		}
+		if MODE == task_expired {
+			multigraph(
+				tasks,
+				task_expired,
+				"Abandoned tasks expired",
+				GAUGE,
+				"Abandoned tasks expired",
+				"tasks",
+				"This graph shows tasks that never terminated for some reason, and were culled from the dataset",
+			)
+		}
 	}
 	if len(queues) > 1 {
 		if MODE == queue_length {
@@ -203,6 +215,7 @@ func output(tasks []string, queues []string) {
 		fmt.Printf("%v.value %v\n", parent(task_started, task), get_int(td["num_started"]))
 		fmt.Printf("%v.value %v\n", parent(task_failed, task), get_int(td["num_failed"]))
 		fmt.Printf("%v.value %v\n", parent(task_success, task), get_int(td["num_success"]))
+		fmt.Printf("%v.value %v\n", parent(task_expired, task), get_int(td["expired"]))
 		fmt.Printf("%v.value %f\n", parent(task_start_time, task), get_float(td["start_time"]))
 		fmt.Printf("%v.value %f\n", parent(task_success_time, task), get_float(td["success_time"]))
 		fmt.Printf("%v.value %f\n", parent(task_failed_time, task), get_float(td["failure_time"]))
